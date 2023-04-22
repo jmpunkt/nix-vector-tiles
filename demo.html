@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
+    <link
+      href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <div id="map" style="width: 800px; height: 800px"></div>
+    <script>
+      var map = new maplibregl.Map({
+        container: "map",
+        style: "style.json", // stylesheet location
+        center: [8.241873182827993, 50.07788083876652],
+        zoom: 12,
+      });
+      map.dragRotate.disable();
+      map.touchZoomRotate.disableRotation();
+      var currentMarker = null;
+      map.on("click", function (e) {
+        currentMarker?.remove();
+        currentMarker = new maplibregl.Marker({
+          color: "#3489eb",
+          draggable: true,
+        }).setLngLat(e.lngLat);
+        currentMarker.addTo(map);
+        console.log("A click event has occurred at " + e.lngLat);
+      });
+    </script>
+  </body>
+</html>

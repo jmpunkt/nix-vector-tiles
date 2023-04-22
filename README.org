@@ -1,0 +1,102 @@
+* Nix Vector Tiles
+
+Create fully self-hosted Mapbox vector tiles with Nix using
+[[https://github.com/systemed/tilemaker][Tilemaker]]. All files are static served, thus can be used offline.
+
+** Demo
+
+Uses data from [[https://download.geofabrik.de/][Geofabrik]] to create vector tiles for Hessen (state in
+Germany).
+
+*** Uncompressed (miniserve)
+Tiles will be displays using maplibre-gl at
+=127.0.0.1:8081/index.html=. Notice that files might display
+incorrectly across rebuilds due to serving directly from the Nix
+store. Files inside the Nix store have the same timestamps which cause
+caching issues inside the browser.
+
+#+BEGIN_SRC shell
+  nix run github:jmpunkt/nix-vector-tiles#demo-maptiler-basic-gl-style
+#+END_SRC
+
+*** Compressed (Nginx + Qemu)
+Tiles will be displays using maplibre-gl at =127.0.0.1:8080=. Requires
+Nginx, thus runs in a Qemu instance.
+
+#+BEGIN_SRC shell
+  nix run github:jmpunkt/nix-vector-tiles#demo-nginx-maptiler-basic-gl-style
+#+END_SRC
+
+*** Notice
+Currently (22-04-2023) Firefox does not display sprites correctly. It
+is best to use Chromium based browsers.
+
+** Create Bundle
+
+#+BEGIN_SRC nix
+  {buildTilesBundle, buildTilesMetadata, buildTiles, tilesStyles}: buildTilesBundle {
+    host = "http://127.0.0.1:8081";
+    metadataFn = tilesUrl:
+      buildTilesMetadata {
+        tileJson = {tiles = [tilesUrl];};
+        tiles = buildTiles {
+          src = fetchGeofabrik {
+            continent = "europe";
+            country = "germany";
+            name = "hessen";
+            date = "230101";
+            sha256 = "sha256-sOoPtIEY4TxSm/p0MGc9LGzQtQmIafGH0IWbkby95K8=";
+          };
+          # renumber nodes for less memory consumption
+          renumber = true;
+          config = {settings.compress = "gzip";};
+          # compression is disabled by default
+          # config = {};
+        };
+      };
+    styleFn = tilesStyles.maptiler-basic-gl-style;
+  };
+#+END_SRC
+
+** Nginx
+
+Here are some *very* short example configurations for Nginx. Notice
+that =${bundle}= refers to a tile bundle derivation.
+
+*** Serving From Subdirectory
+
+#+BEGIN_SRC nginx
+  location /map/ {
+    alias ${bundle}/share/www/;
+    try_files $uri $uri/ =403;
+
+    location /map/tiles/data/ {
+      gunzip on;
+      gzip_static on;
+      gzip_proxied expired no-cache no-store private auth;
+    }
+  }
+#+END_SRC
+
+
+*** Serving From Root
+
+Notice that =root= must be set to ="${bundle}/share/www"= in the
+Nginx config.
+
+#+BEGIN_SRC nginx
+  location / {
+    try_files $uri /index.html;
+
+     location /tiles/data/ {
+      gunzip on;
+      gzip_static on;
+      gzip_proxied expired no-cache no-store private auth;
+    }
+  }
+#+END_SRC
+
+** TODO(s) / Limitations
+- allow font to be combined
+- package Maplibre-js
+- fix (Roboto) fonts for osm-liberty
