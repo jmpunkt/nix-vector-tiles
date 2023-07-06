@@ -7,13 +7,14 @@
 }: {
   tileJson,
   tiles,
+  attribution ? "<a href='https://www.openstreetmap.org/copyright/'>&#169; OSM contributors</a>",
 }: let
   base-spec-v3 = writeText "app-config.json" (builtins.toJSON
     ({
         tilejson = "3.0.0";
         scheme = "xyz";
         version = "1.0.0";
-        attribution = "<a href='http://openstreetmap.org'>OSM contributors</a>";
+        inherit attribution;
       }
       // tileJson));
   spec = fetchFromGitHub {
