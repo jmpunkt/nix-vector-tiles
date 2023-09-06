@@ -7,6 +7,7 @@
   unzip,
   osmium-tool,
 }: {
+  name,
   src,
   config ? {},
   renumber ? false,
@@ -26,7 +27,7 @@
 in
   stdenv.mkDerivation {
     inherit src;
-    name = "${src.name}-tiles";
+    name = "${src}-tiles";
 
     unpackPhase = "true";
 

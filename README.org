@@ -34,28 +34,29 @@ is best to use Chromium based browsers.
 ** Create Bundle
 
 #+BEGIN_SRC nix
-  {buildTilesBundle, buildTilesMetadata, buildTiles, tilesStyles}: buildTilesBundle {
-    host = "http://127.0.0.1:8081";
-    metadataFn = tilesUrl:
-      buildTilesMetadata {
-        tileJson = {tiles = [tilesUrl];};
-        tiles = buildTiles {
-          src = fetchGeofabrik {
-            continent = "europe";
-            country = "germany";
-            name = "hessen";
-            date = "230101";
-            sha256 = "sha256-sOoPtIEY4TxSm/p0MGc9LGzQtQmIafGH0IWbkby95K8=";
-          };
-          # renumber nodes for less memory consumption
-          renumber = true;
-          config = {settings.compress = "gzip";};
-          # compression is disabled by default
-          # config = {};
+{buildTilesBundle, buildTilesMetadata, buildTiles, tilesStyles}: buildTilesBundle {
+  host = "http://127.0.0.1:8081";
+  metadataFn = tilesUrl:
+    buildTilesMetadata {
+      tileJson = {tiles = [tilesUrl];};
+      tiles = buildTiles {
+        name = "germany-hessen";
+        src = fetchGeofabrik {
+          continent = "europe";
+          country = "germany";
+          name = "hessen";
+          date = "230101";
+          sha256 = "sha256-sOoPtIEY4TxSm/p0MGc9LGzQtQmIafGH0IWbkby95K8=";
         };
+        # renumber nodes for less memory consumption
+        renumber = true;
+        config = {settings.compress = "gzip";};
+        # compression is disabled by default
+        # config = {};
       };
-    styleFn = tilesStyles.maptiler-basic-gl-style;
-  };
+    };
+  styleFn = tilesStyles.maptiler-basic-gl-style;
+};
 #+END_SRC
 
 ** Nginx

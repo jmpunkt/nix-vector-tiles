@@ -88,6 +88,7 @@
           tileJson = {tiles = [tilesUrl];};
           tiles = pkgs.buildTiles {
             inherit config;
+            inherit (hessen) name;
             renumber = true;
             src = pkgs.fetchGeofabrik hessen;
           };
