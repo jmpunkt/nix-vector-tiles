@@ -1,0 +1,13 @@
+diff --git a/pbf_font_tools/build.rs b/pbf_font_tools/build.rs
+index 7c7eb72..7c1dfac 100644
+--- a/pbf_font_tools/build.rs
++++ b/pbf_font_tools/build.rs
+@@ -6,8 +6,5 @@ fn main() {
+         .cargo_out_dir("protos")
+         .input("proto/glyphs.proto")
+         .include("proto/");
+-    if let Ok(vendored_protoc) = protoc_bin_path() {
+-        codegen.protoc_path(&vendored_protoc);
+-    }
+     codegen.run().expect("Protobuf codegen failed.");
+ }

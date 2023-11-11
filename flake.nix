@@ -1,25 +1,11 @@
 {
   description = "A rust project";
   inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
     utils.url = "github:numtide/flake-utils";
-    build_pbf_glyphs = {
-      url = "github:stadiamaps/build_pbf_glyphs";
-      flake = false;
-    };
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "utils";
-    };
-    cargo2nix = {
-      url = "github:cargo2nix/cargo2nix/release-0.11.0";
-      inputs.rust-overlay.follows = "rust-overlay";
-    };
     map-sprite-packer = {
       url = "github:jmpunkt/map-sprite-packer";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.rust-overlay.follows = "rust-overlay";
-      inputs.cargo2nix.follows = "cargo2nix";
       inputs.utils.follows = "utils";
     };
   };
@@ -27,45 +13,32 @@
     self,
     nixpkgs,
     utils,
-    cargo2nix,
-    build_pbf_glyphs,
-    rust-overlay,
     map-sprite-packer,
   }: let
     buildRustPkgs = pkgs:
-      pkgs.rustBuilder.makePackageSet {
-        rustVersion = "1.67.1";
-        packageFun = import ./Cargo.nix;
-        workspaceSrc = build_pbf_glyphs;
+      pkgs.rustPlatform.buildRustPackage {
+        pname = "build_pbf_glyphs";
+        version = "1.4.1";
 
-        packageOverrides = pkgs:
-          pkgs.rustBuilder.overrides.all
-          ++ [
-            (pkgs.rustBuilder.rustLib.makeOverride {
-              name = "freetype-sys";
-              overrideAttrs = drv: {
-                propagatedBuildInputs =
-                  (drv.propagatedBuildInputs or [])
-                  ++ [
-                    pkgs.freetype
-                  ];
-              };
-            })
-            (pkgs.rustBuilder.rustLib.makeOverride {
-              name = "pbf_font_tools";
-              overrideAttrs = drv: {
-                postUnpack = ''
-                  # HACK: uses annoying pre-built binaries
-                  sed -i 's/&protoc_bin_path().unwrap()/std::path::Path::new("protoc")/g' pbf_font_tools-2.2.0/build.rs
-                '';
-                propagatedBuildInputs =
-                  (drv.propagatedBuildInputs or [])
-                  ++ [
-                    pkgs.protobuf
-                  ];
-              };
-            })
-          ];
+        patches = [./pbf_font_tools-Protoc.patch];
+
+        src = pkgs.fetchFromGitHub {
+          owner = "stadiamaps";
+          repo = "sdf_font_tools";
+          rev = "cli-v1.4.1";
+          sha256 = "sha256-8xH9TpaC1KaaBFY5fsq3XZrNM44ZNxzs5W+Zg3aGkJU=";
+        };
+        cargoBuildFlags = "-p build_pbf_glyphs";
+
+        cargoSha256 = "sha256-m+ysA7fJqytFbSdPPNl6TQj6QAft13bO89LboTwb0uU=";
+
+        nativeBuildInputs = with pkgs; [
+          protobuf
+        ];
+
+        buildInputs = with pkgs; [
+          freetype
+        ];
       };
     buildForSystem = system: let
       overlays = [self.overlays.default];
@@ -153,9 +126,13 @@
   in
     (utils.lib.eachDefaultSystem buildForSystem)
     // {
-      overlays = let
-        standalone = final: prev: {
-          build_pbf_glyphs = (((buildRustPkgs prev).workspace).build_pbf_glyphs {}).bin;
+      overlays = {
+        default = nixpkgs.lib.composeManyExtensions [
+          map-sprite-packer.overlays.default
+          self.overlays.packages
+        ];
+        packages = final: prev: {
+          build_pbf_glyphs = buildRustPkgs prev;
           fetchGeofabrik = prev.callPackage ./fetch-geofabrik.nix {};
           buildTiles = prev.callPackage ./build-tiles.nix {};
           buildTilesBundle = prev.callPackage ./build-bundle.nix {};
@@ -164,13 +141,6 @@
           buildTilesMetadata = prev.callPackage ./build-metadata.nix {};
           tilesStyles = final.callPackage ./styles.nix {};
         };
-      in {
-        inherit standalone;
-        default = nixpkgs.lib.composeManyExtensions [
-          cargo2nix.overlays.default
-          map-sprite-packer.overlays.default
-          standalone
-        ];
       };
     };
 }
