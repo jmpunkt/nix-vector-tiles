@@ -5,6 +5,7 @@
   symlinkJoin,
   moreutils,
   map-sprite-packer,
+  optipng,
 }: {
   name,
   src,
@@ -27,7 +28,7 @@ in
   stdenv.mkDerivation {
     inherit name src;
     buildInputs =
-      [fonts jq moreutils]
+      [fonts jq moreutils optipng]
       ++ (lib.optional shouldPack map-sprite-packer);
 
     unpackPhase = "true";
@@ -41,6 +42,8 @@ in
         if shouldPack
         then ''
           map-sprite-packer ${dirArgs} --width ${toString spriteWidth} --height ${toString spriteHeight} --output sprites
+          optipng -o9 sprites/sprite.png
+          optipng -o9 sprites/sprite@2x.png
         ''
         else ""
       }
